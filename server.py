@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
@@ -14,25 +15,58 @@ def download_tiktok():
         return jsonify({'error': 'Укажите ссылку'}), 400
 
     try:
-        # Запрос к SnapTik через Python для получения ссылки на оригинал
-        headers = {
+        session = requests.Session()
+        # 1. Получаем сессию SSSTik для вытаскивания токена 'tt'
+        ses_resp = session.get('https://ssstik.io', headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
+        })
         
-        # Простой обход через публичные зеркала или API SnapTik
-        snaptik_api = f"https://snaptik.app/abc.php?url={video_url}"
-        response = requests.get(snaptik_api, headers=headers)
+        tt_match = re.findall(r'tt:\'([\\w\\d]+)\'', ses_resp.text)
+        if not tt_match:
+            return jsonify({'error': 'Не удалось получить токен от SSSTik'}), 500
         
-        # Альтернативный прямой метод через парсинг или готовый легкий эндпоинт:
-        # Если SnapTik капризничает, используем стабильный python-парсер
-        api_fall = requests.get(f"https://www.tikwm.com/api/?url={video_url}&hd=1").json()
-        download_url = api_fall.get('data', {}).get('hdplay') or api_fall.get('data', {}).get('play')
+        tt_token = tt_match[0]
 
-        if not download_url:
-            return jsonify({'error': 'Не удалось найти видео'}), 404
+        # 2. Делаем POST-запрос на поиск видео в высоком качестве
+        post_resp = session.post('https://ssstik.io/abc?url=dl', data={
+            'id': video_url,
+            'locale': 'en',
+            'tt': tt_token
+        }, headers={
+            'HX-Current-URL': 'https://ssstik.io/en',
+            'HX-Request': 'true',
+            'HX-Target': 'target',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Origin': 'https://ssstik.io',
+            'Referer': 'https://ssstik.io/en'
+        })
 
-        # Проксируем поток видео к пользователю
-        req_video = requests.get(download_url, headers=headers, stream=True)
+        # 3. Парсим ответ через BeautifulSoup для поиска ссылки без водяного знака (HD)
+        soup = BeautifulSoup(post_resp.text, 'html.parser')
+        
+        # Ищем кнопку скачивания без водяного знака в HD
+        download_link = None
+        for a in soup.find_all('a', href=True):
+            if 'download' in a.get('class', []) or 'dl' in a.get('href', ''):
+                href = a['href']
+                if 'http' in href:
+                    download_link = href
+                    break
+        
+        # Если прямая не нашлась, берем первую попавшуюся ссылку на видео
+        if not download_link:
+            links = [a['href'] for a in soup.find_all('a', href=True) if 'dl.ssstik.io' in a['href'] or 'tikcdn' in a['href']]
+            if links:
+                download_link = links[0]
+
+        if not download_link:
+            return jsonify({'error': 'Ссылка на видео не найдена в ответе SSSTik'}), 404
+
+        # 4. Проксируем видеопоток пользователю
+        req_video = requests.get(download_link, stream=True, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://ssstik.io/'
+        })
 
         def generate():
             for chunk in req_video.iter_content(chunk_size=8192):
@@ -40,11 +74,11 @@ def download_tiktok():
                     yield chunk
 
         return Response(generate(), mimetype='video/mp4', headers={
-            'Content-Disposition': 'attachment; filename="tiktok_hd.mp4"'
+            'Content-Disposition': 'attachment; filename="tiktok_ssstik_hd.mp4"'
         })
 
     except Exception as e:
-        print(e)
+        print('Ошибка:', str(e))
         return jsonify({'error': 'Ошибка сервера'}), 500
 
 if __name__ == '__main__':
