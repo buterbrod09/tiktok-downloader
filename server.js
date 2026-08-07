@@ -7,20 +7,18 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-app.get('/download', async (req, res) => {
+app.get('/api/download', async (req, res) => {
     const videoUrl = req.query.url;
-    if (!videoUrl) return res.status(400).send('Укажите ссылку');
+    if (!videoUrl) return res.status(400).json({ error: 'Укажите ссылку' });
 
     try {
-        // Получаем ссылку на HD видео напрямую
         const apiRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}&hd=1`);
         const downloadUrl = apiRes.data?.data?.hdplay || apiRes.data?.data?.play;
 
         if (!downloadUrl) {
-            return res.status(404).send('Видео не найдено');
+            return res.status(404).json({ error: 'Видео не найдено' });
         }
 
-        // Скачиваем поток с заголовками TikTok CDN
         const videoStream = await axios({
             method: 'get',
             url: downloadUrl,
@@ -37,8 +35,8 @@ app.get('/download', async (req, res) => {
 
     } catch (e) {
         console.error(e.message);
-        res.status(500).send('Ошибка при обработке запроса');
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
