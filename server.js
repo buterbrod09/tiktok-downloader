@@ -12,30 +12,37 @@ app.get('/api/download', async (req, res) => {
     if (!videoUrl) return res.status(400).json({ error: 'Укажите ссылку' });
 
     try {
-        const apiRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}&hd=1`);
-        const downloadUrl = apiRes.data?.data?.hdplay || apiRes.data?.data?.play;
-
-        if (!downloadUrl) {
-            return res.status(404).json({ error: 'Видео не найдено' });
-        }
-
-        const videoStream = await axios({
-            method: 'get',
-            url: downloadUrl,
-            responseType: 'stream',
+        // Запрос к публичному инстансу Cobalt API
+        const cobaltRes = await axios.post('https://api.cobalt.tools/api/json', {
+            url: videoUrl,
+            videoQuality: 'max'
+        }, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://www.tiktok.com/'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
 
+        const downloadUrl = cobaltRes.data?.url;
+
+        if (!downloadUrl) {
+            return res.status(404).json({ error: 'Не удалось получить ссылку на видео от Cobalt' });
+        }
+
+        // Проксирование видеопотока в исходном качестве
+        const videoStream = await axios({
+            method: 'get',
+            url: downloadUrl,
+            responseType: 'stream'
+        });
+
         res.setHeader('Content-Type', 'video/mp4');
-        res.setHeader('Content-Disposition', `attachment; filename="tiktok_${Date.now()}.mp4"`);
+        res.setHeader('Content-Disposition', `attachment; filename="tiktok_max_${Date.now()}.mp4"`);
         videoStream.data.pipe(res);
 
     } catch (e) {
         console.error(e.message);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        res.status(500).json({ error: 'Ошибка сервера при загрузке через Cobalt' });
     }
 });
 
