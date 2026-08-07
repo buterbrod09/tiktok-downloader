@@ -12,20 +12,23 @@ app.get('/api/download', async (req, res) => {
     if (!videoUrl) return res.status(400).json({ error: 'Укажите ссылку' });
 
     try {
-        const apiRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}&hd=1`);
-        const downloadUrl = apiRes.data?.data?.hdplay || apiRes.data?.data?.play;
+        // Отправляем запрос к стабильному бесплатному API
+        const apiRes = await axios.get(`https://lofiapi.com/api/tiktok?url=${encodeURIComponent(videoUrl)}`);
+        
+        // Получаем ссылку на HD видео без водяного знака
+        const downloadUrl = apiRes.data?.data?.play || apiRes.data?.data?.hdplay;
 
         if (!downloadUrl) {
-            return res.status(404).json({ error: 'Видео не найдено' });
+            return res.status(404).json({ error: 'Не удалось получить видео' });
         }
 
+        // Скачиваем оригинальный видеопоток
         const videoStream = await axios({
             method: 'get',
             url: downloadUrl,
             responseType: 'stream',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://www.tiktok.com/'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         });
 
@@ -34,8 +37,8 @@ app.get('/api/download', async (req, res) => {
         videoStream.data.pipe(res);
 
     } catch (e) {
-        console.error(e.message);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        console.error('Ошибка сервера:', e.message);
+        res.status(500).json({ error: 'Ошибка при скачивании файла' });
     }
 });
 
