@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { Tiktok } = require('@tobyg74/tiktok-api-dl');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,21 +12,13 @@ app.get('/api/download', async (req, res) => {
     if (!videoUrl) return res.status(400).json({ error: 'Укажите ссылку' });
 
     try {
-        // Парсим TikTok напрямую через библиотеку
-        const result = await Tiktok(videoUrl, { version: 'v1' });
-
-        if (result.status !== 'success' || !result.result) {
-            return res.status(404).json({ error: 'Не удалось распарсить ссылку' });
-        }
-
-        // Берем прямую ссылку на видео без водяного знака
-        const downloadUrl = result.result.video.playAddr[0] || result.result.video.downloadAddr[0];
+        const apiRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}&hd=1`);
+        const downloadUrl = apiRes.data?.data?.hdplay || apiRes.data?.data?.play;
 
         if (!downloadUrl) {
             return res.status(404).json({ error: 'Видео не найдено' });
         }
 
-        // Скачиваем оригинальный видеопоток
         const videoStream = await axios({
             method: 'get',
             url: downloadUrl,
@@ -43,7 +34,7 @@ app.get('/api/download', async (req, res) => {
         videoStream.data.pipe(res);
 
     } catch (e) {
-        console.error('Ошибка:', e.message);
+        console.error(e.message);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
