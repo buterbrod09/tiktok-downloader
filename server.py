@@ -1,51 +1,59 @@
-import os
-from flask import Flask, Response, jsonify, request
-from flask_cors import CORS
-import yt_dlp
-import requests
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
 
-app = Flask(__name__)
-CORS(app)
+const app = express();
+app.use(cors());
 
-@app.route('/api/download', methods=['GET'])
-def download_tiktok():
-    video_url = request.args.get('url')
-    if not video_url:
-        return jsonify({'error': 'Укажите ссылку'}), 400
+app.get('/api/download', async (req, res) => {
+    const videoUrl = req.query.url;
+    
+    if (!videoUrl) {
+        return res.status(400).send('URL is required');
+    }
 
-    try:
-        # Настройки yt-dlp для получения прямой ссылки на видео в максимальном качестве
-        ydl_opts = {
-            'format': 'best',
-            'quiet': True,
-            'no_warnings': True,
+    try {
+        // 1. Стучимся в Cobalt API — он лучше всего вытаскивает оригинальное качество
+        const cobaltResponse = await axios.post('https://api.cobalt.tools/api/json', {
+            url: videoUrl,
+            videoQuality: "max" // Запрашиваем максимальное доступное качество
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+
+        const downloadUrl = cobaltResponse.data.url;
+
+        if (!downloadUrl) {
+            return res.status(500).send('Не удалось получить ссылку на видео в макс. качестве');
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_url, download=False)
-            download_url = info.get('url')
+        // 2. Скачиваем само видео по прямой ссылке, которую достал Cobalt
+        const videoResponse = await axios({
+            method: 'GET',
+            url: downloadUrl,
+            responseType: 'stream',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
 
-        if not download_url:
-            return jsonify({'error': 'Не удалось получить ссылку через yt-dlp'}), 404
+        // 3. Отдаем файл в браузер
+        res.setHeader('Content-Disposition', `attachment; filename="tiktok_HEVC_${Date.now()}.mp4"`);
+        res.setHeader('Content-Type', 'video/mp4');
 
-        # Проксируем поток видео пользователю
-        req_video = requests.get(download_url, stream=True, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        })
+        videoResponse.data.pipe(res);
 
-        def generate():
-            for chunk in req_video.iter_content(chunk_size=8192):
-                if chunk:
-                    yield chunk
+    } catch (error) {
+        console.error('Ошибка скачивания:', error.message);
+        res.status(500).send('Ошибка на сервере');
+    }
+});
 
-        return Response(generate(), mimetype='video/mp4', headers={
-            'Content-Disposition': 'attachment; filename="tiktok_ytdlp_max.mp4"'
-        })
-
-    except Exception as e:
-        print('Ошибка yt-dlp:', str(e))
-        return jsonify({'error': 'Ошибка сервера при обработке ссылки'}), 500
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
