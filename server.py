@@ -1,59 +1,54 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+import os
+import requests
+from flask import Flask, request, Response
+from flask_cors import CORS
 
-const app = express();
-app.use(cors());
+app = Flask(__name__)
+CORS(app)
 
-app.get('/api/download', async (req, res) => {
-    const videoUrl = req.query.url;
-    
-    if (!videoUrl) {
-        return res.status(400).send('URL is required');
-    }
+@app.route('/api/download')
+def download():
+    video_url = request.args.get('url')
+    if not video_url:
+        return "URL is required", 400
 
-    try {
-        // 1. Стучимся в Cobalt API — он лучше всего вытаскивает оригинальное качество
-        const cobaltResponse = await axios.post('https://api.cobalt.tools/api/json', {
-            url: videoUrl,
-            videoQuality: "max" // Запрашиваем максимальное доступное качество
-        }, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-        });
-
-        const downloadUrl = cobaltResponse.data.url;
-
-        if (!downloadUrl) {
-            return res.status(500).send('Не удалось получить ссылку на видео в макс. качестве');
+    try:
+        # 1. Стучимся в Cobalt API за максимальным качеством
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         }
+        payload = {
+            "url": video_url,
+            "videoQuality": "max"
+        }
+        
+        cobalt_res = requests.post('https://api.cobalt.tools/', json=payload, headers=headers)
+        
+        if cobalt_res.status_code != 200:
+            return f"Ошибка от Cobalt API: {cobalt_res.text}", 500
+            
+        download_url = cobalt_res.json().get('url')
+        
+        if not download_url:
+            return "Не удалось вытянуть ссылку на видео", 500
 
-        // 2. Скачиваем само видео по прямой ссылке, которую достал Cobalt
-        const videoResponse = await axios({
-            method: 'GET',
-            url: downloadUrl,
-            responseType: 'stream',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        # 2. Скачиваем видео и передаем его в браузер
+        video_res = requests.get(download_url, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
+        
+        return Response(
+            video_res.iter_content(chunk_size=1024*1024),
+            content_type='video/mp4',
+            headers={
+                'Content-Disposition': 'attachment; filename="tiktok_max_quality.mp4"'
             }
-        });
+        )
 
-        // 3. Отдаем файл в браузер
-        res.setHeader('Content-Disposition', `attachment; filename="tiktok_HEVC_${Date.now()}.mp4"`);
-        res.setHeader('Content-Type', 'video/mp4');
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return "Внутренняя ошибка сервера", 500
 
-        videoResponse.data.pipe(res);
-
-    } catch (error) {
-        console.error('Ошибка скачивания:', error.message);
-        res.status(500).send('Ошибка на сервере');
-    }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 3000))
+    app.run(host='0.0.0.0', port=port)
