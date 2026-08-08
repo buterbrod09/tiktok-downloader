@@ -1,8 +1,10 @@
+import http.cookiejar
 import io
 import os
 import re
 import unicodedata
 
+import requests
 import yt_dlp
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
@@ -40,7 +42,7 @@ def extract_best_hevc(url: str) -> dict:
         },
     }
 
-    # Если вы положите файл cookies.txt в корень проекта, yt-dlp подтянет его
+    # Подключаем cookies.txt для yt-dlp
     cookie_path = os.path.join(os.path.dirname(__file__), "cookies.txt")
     if os.path.exists(cookie_path):
         ydl_opts["cookiefile"] = cookie_path
@@ -96,15 +98,12 @@ def resolve():
 
 @app.route("/api/download")
 def download():
-    """Проксирует файл через наш сервер, чтобы браузер сохранял его с
-    правильным именем и без проблем с CORS/Referer до CDN TikTok."""
+    """Проксирует файл через наш сервер, используя cookies.txt."""
     file_url = request.args.get("url")
     filename = request.args.get("filename", "tiktok_video.mp4")
 
     if not file_url:
         return jsonify({"error": "Нет ссылки на файл"}), 400
-
-    import requests
 
     headers = {
         "User-Agent": (
@@ -115,8 +114,18 @@ def download():
         "Referer": "https://www.tiktok.com/",
     }
 
+    session = requests.Session()
+    cookie_path = os.path.join(os.path.dirname(__file__), "cookies.txt")
+    if os.path.exists(cookie_path):
+        cj = http.cookiejar.MozillaCookieJar(cookie_path)
+        try:
+            cj.load(ignore_discard=True, ignore_expires=True)
+            session.cookies.update(cj)
+        except Exception:
+            pass
+
     try:
-        upstream = requests.get(file_url, headers=headers, stream=True, timeout=30)
+        upstream = session.get(file_url, headers=headers, stream=True, timeout=30)
         upstream.raise_for_status()
     except Exception as exc:  # noqa: BLE001
         return jsonify({"error": f"Не удалось скачать файл: {exc}"}), 502
