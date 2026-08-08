@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>tapdl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121016;
+    --surface: #1a1720;
+    --surface-raised: #221f2b;
+    --lavender: #b8a9f3;
+    --lavender-dim: #8b7cc4;
+    --lavender-glow: rgba(184, 169, 243, 0.18);
+    --text: #ece9f5;
+    --text-dim: #837d99;
+    --error: #f3a9a9;
+    --success: #a9f3c8;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 24px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .mark {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .mark .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--lavender);
+    box-shadow: 0 0 12px var(--lavender-glow);
+  }
+
+  .mark span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .field {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+
+  .field:focus-within {
+    border-color: var(--lavender-dim);
+    background: var(--surface-raised);
+  }
+
+  .field textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 20px 20px 16px;
+    min-height: 76px;
+    max-height: 140px;
+  }
+
+  .field textarea::placeholder {
+    color: var(--text-dim);
+  }
+
+  .field-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px 12px;
+  }
+
+  .paste-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--lavender-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .paste-btn:active {
+    background: var(--lavender-glow);
+    color: var(--lavender);
+  }
+
+  .paste-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    padding-right: 4px;
+    text-align: right;
+    min-height: 16px;
+  }
+
+  .status.error { color: var(--error); }
+  .status.success { color: var(--success); }
+
+  .go-btn {
+    width: 100%;
+    padding: 20px;
+    border-radius: 20px;
+    border: none;
+    background: var(--lavender);
+    color: #1a1626;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .go-btn:active { transform: scale(0.98); }
+
+  .go-btn:disabled {
+    background: var(--surface-raised);
+    color: var(--text-dim);
+    cursor: default;
+  }
+
+  .go-btn .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(26, 22, 38, 0.3);
+    border-top-color: #1a1626;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  .go-btn.loading .spinner { display: block; }
+  .go-btn.loading .label { opacity: 0.7; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .quality-tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .quality-tag .pill {
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid var(--lavender-dim);
+    color: var(--lavender);
+  }
+
+  @media (max-height: 560px) {
+    .wrap { gap: 18px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mark">
+      <span class="dot"></span>
+      <span>tapdl</span>
+    </div>
+
+    <div>
+      <div class="field">
+        <textarea
+          id="urlInput"
+          placeholder="Вставь ссылку на видео"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          rows="2"
+        ></textarea>
+        <div class="field-foot">
+          <button class="paste-btn" id="pasteBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="2" width="8" height="4" rx="1"/>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            </svg>
+            вставить
+          </button>
+          <div class="status" id="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="go-btn" id="goBtn" type="button" disabled>
+      <span class="spinner"></span>
+      <span class="label" id="goLabel">Скачать</span>
+    </button>
+
+    <div class="quality-tag">
+      <span class="pill">HEVC</span>
+      <span>оригинальное качество</span>
+    </div>
+  </div>
+
+<script>
+  const input = document.getElementById('urlInput');
+  const pasteBtn = document.getElementById('pasteBtn');
+  const goBtn = document.getElementById('goBtn');
+  const goLabel = document.getElementById('goLabel');
+  const status = document.getElementById('status');
+
+  function setStatus(text, type) {
+    status.textContent = text || '';
+    status.className = 'status' + (type ? ' ' + type : '');
+  }
+
+  function updateGoState() {
+    goBtn.disabled = input.value.trim().length === 0;
+  }
+
+  input.addEventListener('input', updateGoState);
+
+  pasteBtn.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        input.value = text.trim();
+        updateGoState();
+        setStatus('вставлено', 'success');
+        setTimeout(() => setStatus(''), 1200);
+      }
+    } catch (err) {
+      setStatus('нет доступа к буферу — вставь вручную', 'error');
+    }
+  });
+
+  async function handleDownload() {
+    const url = input.value.trim();
+    if (!url) return;
+
+    goBtn.disabled = true;
+    goBtn.classList.add('loading');
+    goLabel.textContent = 'Обработка…';
+    setStatus('ищу поток HEVC…');
+
+    try {
+      const resolveRes = await fetch('/api/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await resolveRes.json();
+
+      if (!resolveRes.ok) {
+        throw new Error(data.error || 'Ошибка обработки');
+      }
+
+      goLabel.textContent = 'Скачивание…';
+      setStatus(data.used_hevc ? 'формат: HEVC' : 'HEVC недоступен — лучшее из возможного');
+
+      const downloadUrl = `/api/download?url=${encodeURIComponent(data.direct_url)}&filename=${encodeURIComponent(data.filename)}`;
+
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setStatus('готово', 'success');
+
+      // Очистка поля для следующей ссылки
+      input.value = '';
+      updateGoState();
+      setTimeout(() => setStatus(''), 1800);
+    } catch (err) {
+      setStatus(err.message || 'что-то пошло не так', 'error');
+    } finally {
+      goBtn.classList.remove('loading');
+      goLabel.textContent = 'Скачать';
+      updateGoState();
+    }
+  }
+
+  goBtn.addEventListener('click', handleDownload);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleDownload();
+    }
+  });
+</script>
+</body>
+</html>
