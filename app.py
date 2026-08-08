@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import unicodedata
 
@@ -21,18 +22,34 @@ def slugify_filename(name: str, ext: str) -> str:
 def extract_best_hevc(url: str) -> dict:
     """Достаёт метаданные видео и выбирает лучший доступный HEVC/H.265 поток,
     с откатом на лучший доступный формат, если HEVC недоступен."""
+    
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "format": "bestvideo[vcodec^=hevc]+bestaudio/bestvideo[vcodec^=h265]+bestaudio/best",
         "noplaylist": True,
+        # Обход защиты TikTok
+        "impersonate": "chrome",
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.tiktok.com/",
+        },
     }
+
+    # Если вы положите файл cookies.txt в корень проекта, yt-dlp подтянет его
+    cookie_path = os.path.join(os.path.dirname(__file__), "cookies.txt")
+    if os.path.exists(cookie_path):
+        ydl_opts["cookiefile"] = cookie_path
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-        # requested_formats появляется, если видео+аудио выбраны раздельно;
-        # для TikTok обычно всё в одном контейнере, поэтому смотрим оба случая.
         chosen_format_id = info.get("format_id", "")
         used_hevc = "hevc" in chosen_format_id.lower() or "h265" in str(info.get("vcodec", "")).lower()
 
@@ -93,8 +110,9 @@ def download():
 
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-            "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
         ),
         "Referer": "https://www.tiktok.com/",
     }
@@ -118,6 +136,5 @@ def download():
 
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
