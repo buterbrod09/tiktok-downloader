@@ -29,8 +29,6 @@ def extract_best_hevc(url: str) -> dict:
         "skip_download": True,
         "format": "bestvideo[vcodec^=hevc]+bestaudio/bestvideo[vcodec^=h265]+bestaudio/best",
         "noplaylist": True,
-        # Обход защиты TikTok
-        "impersonate": "chrome",
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
