@@ -1,0 +1,35 @@
+# Netscape HTTP Cookie File
+# https://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file! Do not edit.
+
+.www.tiktok.com	TRUE	/	TRUE	1812100429	tiktok_webapp_theme	dark
+.www.tiktok.com	TRUE	/	TRUE	1805329351	delay_guest_mode_vid	8
+.tiktok.com	TRUE	/	TRUE	0	s_v_web_id	verify_mpk7d4zk_47CzqgtQ_bDSp_4zsl_8UrU_kX5MYOhWvEpj
+.tiktok.com	TRUE	/	FALSE	1811189066	d_ticket	1b5a6f2aa8b82ed5a69504aa696019104d506
+.tiktok.com	TRUE	/	FALSE	1801579545	store-country-code	kz
+.tiktok.com	TRUE	/	FALSE	1801579545	store-country-code-src	uid
+.tiktok.com	TRUE	/	FALSE	1801579545	tt-target-idc	alisg
+.tiktok.com	TRUE	/	TRUE	1801579546	uid_tt	9d392ddf8851f22bce839ebb7ff33c5222694add79cd0dc635a407338f1f9b11
+.tiktok.com	TRUE	/	TRUE	1801579546	uid_tt_ss	9d392ddf8851f22bce839ebb7ff33c5222694add79cd0dc635a407338f1f9b11
+.tiktok.com	TRUE	/	TRUE	1801579546	sid_tt	102537cf020960c29cdabd78f1cec67a
+.tiktok.com	TRUE	/	TRUE	1801579546	sessionid	102537cf020960c29cdabd78f1cec67a
+.tiktok.com	TRUE	/	TRUE	1801579546	sessionid_ss	102537cf020960c29cdabd78f1cec67a
+.tiktok.com	TRUE	/	FALSE	1801579545	store-idc	alisg
+www.tiktok.com	FALSE	/	FALSE	1787429065	last_login_method	handle
+.tiktok.com	TRUE	/	FALSE	1816440172	tt-target-idc-sign	DFxtLmNYUpwNs_5HApXu3UwSS4D8FCOdo4K2nSfJbYoDDWIA1Rk0zkBce7XyEXb2_rZd8CedwKRgQU5ovP3t--3FwfBtKC7atHoT0uQrUPjb4E3ukzHM8Ms6bxKcbARboz7ZNbVON8isVsaS_P0Yu0gOFjIRwKU9tePRYUnBk7EaPQCH_vD7Ox94TRMjHfr1h6YS7w-zdbs12k1ALN34g5XIfvIkaH8JEdc5PVjCdSe_OUFBdsh4xtOxNvMzfXTtc56_9Cmg4ZikzINFeYKxCv4BHWML58hUCJam7v1JD6uob2GYVIDc3VmjbuRYFVGbxppIVbfofYJ2STYDrXmw9TAf2OKRKzfoRxnvboXHDM_fs5oIhxmil-B5B_9pW0ZJIVcbjJ5tNanLIuui-aD2whp3FH6xvvROakKsH9jnYeZ-ecAce2-CmuUeG7q8o4tGxGE-M0WbUQTKRMfjUcq-bVzzOydprvdz1kMHPET0iJ8hhK8IlCHb4J1D7NNrpHXa
+www.tiktok.com	FALSE	/	FALSE	1811339700	living_user_id	600672324092
+.tiktok.com	TRUE	/	TRUE	1816856945	_ttp	3Ebn2sWcnxv8IVDVQNvaXyrw8Jx
+.www.tiktok.com	TRUE	/	TRUE	1812100429	tiktok_webapp_theme_source	auto
+.tiktok.com	TRUE	/	TRUE	0	tt_csrf_token	0JmmWECj-H5XYIw9hI9u_1XaAe35_ZH_NJaM
+.www.tiktok.com	TRUE	/	FALSE	0	passport_fe_beating_status	true
+.tiktok.com	TRUE	/	TRUE	1801732429	tt_chain_token	Noew/or/jikOGaYeGBM6OQ==
+www.tiktok.com	FALSE	/	FALSE	1800456170	g_state	{"i_l":0,"i_ll":1784904170631,"i_b":"UIBUeTExF5RgbYjF4ajKmZYT/REDdypeN7K8sdkypwA","i_e":{"enable_itp_optimization":24},"i_et":1784904170631}
+.tiktok.com	TRUE	/	TRUE	1817131546	sid_guard	102537cf020960c29cdabd78f1cec67a%7C1786027546%7C15552000%7CTue%2C+02-Feb-2027+14%3A45%3A46+GMT
+.tiktok.com	TRUE	/	TRUE	1801579546	tt_session_tlb_tag	sttt%7C4%7CECU3zwIJYMKc2r148c7Gev_________4q8vA6yh9OFXVYMo7Zd-bUgq-QrsqZEGT3-UoTz1o3oY%3D
+.tiktok.com	TRUE	/	TRUE	1801579546	sid_ucp_v1	1.0.1-KDRhZjFlZDdkYTRkMjYyZjVjOGI0OWZmYzQzMGFiMWNmNTlhZjYxOGQKIgiCiMu2-YLboGEQmrzS0wYYswsgDDCPlvbCBjgEQOoHSAQQAxoCbXkiIDEwMjUzN2NmMDIwOTYwYzI5Y2RhYmQ3OGYxY2VjNjdhMk4KIJ9VY0pC50Nxo0CTkSPPTITKHXQHFoWx0STxDRosC--QEiCAkYM8-2vWcRY4wptkTG6MJ2wB9irodEi7L6SMTFED_hgEIgZ0aWt0b2s
+.tiktok.com	TRUE	/	TRUE	1801579546	ssid_ucp_v1	1.0.1-KDRhZjFlZDdkYTRkMjYyZjVjOGI0OWZmYzQzMGFiMWNmNTlhZjYxOGQKIgiCiMu2-YLboGEQmrzS0wYYswsgDDCPlvbCBjgEQOoHSAQQAxoCbXkiIDEwMjUzN2NmMDIwOTYwYzI5Y2RhYmQ3OGYxY2VjNjdhMk4KIJ9VY0pC50Nxo0CTkSPPTITKHXQHFoWx0STxDRosC--QEiCAkYM8-2vWcRY4wptkTG6MJ2wB9irodEi7L6SMTFED_hgEIgZ0aWt0b2s
+.tiktok.com	TRUE	/	TRUE	1817716434	ttwid	1%7CdrSMQ8DI5NZJICUWwTQ1ZPE5ThKl6DDF8s9RzIL86yc%7C1786180435%7C0757ab09dceee0d94b74596e7281d2229f7d52f3bff257932e5f3010478b7d9e
+.tiktok.com	TRUE	/	TRUE	1787044436	msToken	yU06tQlbATt_yHjL5vIsv6YySW6cRZ9zo97gYCXoU_EaRgjdN2LxQgZi5gyv_9jmrXzGnfAAz_PTLH0UvJLNW2az8Wi3U4TU_BWnld3rgD0oZ0KUuiqL1p_mq3HpED2qJD1K9yvGlrDU3Q7wB3GFvnNsWHdbYPw=
+www.tiktok.com	FALSE	/	FALSE	1793956435	msToken	yU06tQlbATt_yHjL5vIsv6YySW6cRZ9zo97gYCXoU_EaRgjdN2LxQgZi5gyv_9jmrXzGnfAAz_PTLH0UvJLNW2az8Wi3U4TU_BWnld3rgD0oZ0KUuiqL1p_mq3HpED2qJD1K9yvGlrDU3Q7wB3GFvnNsWHdbYPw=
+.tiktok.com	TRUE	/	FALSE	1801579545	store-country-sign	MEIEDH1t3K68-rc_Ik64LgQgH2zKqEvI9cuwCjKKvQopNLjR6gMOvPnyeqGEIj1dF9EEEAnqvSChLGg8eBSYxLJbzjc
+.tiktok.com	TRUE	/	FALSE	1817716438	odin_tt	4fead020e57f1f8f5dd10423f55b3f8c5962414cb7a5ae2d09c18816e92a84a0a805a377c9b9a8123a16028081a75651b608fce879bc38bc1666f892e7c761a6a5c882594403bde870436863fb5ea3df
