@@ -1,63 +1,121 @@
-import os
-import requests
-from flask import Flask, request, Response
-from flask_cors import CORS
+import io
+import re
+import unicodedata
+
+import yt_dlp
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
 app = Flask(__name__)
-CORS(app)
 
-@app.route('/api/download')
-def download():
-    video_url = request.args.get('url')
-    if not video_url:
-        return "URL is required", 400
+TIKTOK_URL_RE = re.compile(r"https?://[^\s]*tiktok\.com[^\s]*", re.IGNORECASE)
+
+
+def slugify_filename(name: str, ext: str) -> str:
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    name = re.sub(r"[^\w\-]+", "_", name).strip("_")
+    if not name:
+        name = "tiktok_video"
+    return f"{name[:60]}.{ext}"
+
+
+def extract_best_hevc(url: str) -> dict:
+    """Достаёт метаданные видео и выбирает лучший доступный HEVC/H.265 поток,
+    с откатом на лучший доступный формат, если HEVC недоступен."""
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "format": "bestvideo[vcodec^=hevc]+bestaudio/bestvideo[vcodec^=h265]+bestaudio/best",
+        "noplaylist": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+        # requested_formats появляется, если видео+аудио выбраны раздельно;
+        # для TikTok обычно всё в одном контейнере, поэтому смотрим оба случая.
+        chosen_format_id = info.get("format_id", "")
+        used_hevc = "hevc" in chosen_format_id.lower() or "h265" in str(info.get("vcodec", "")).lower()
+
+        direct_url = info.get("url")
+        if not direct_url and info.get("requested_formats"):
+            direct_url = info["requested_formats"][0].get("url")
+
+        if not direct_url:
+            raise RuntimeError("Не удалось получить прямую ссылку на видео")
+
+        title = info.get("title") or info.get("id") or "tiktok_video"
+        ext = info.get("ext", "mp4")
+
+        return {
+            "direct_url": direct_url,
+            "filename": slugify_filename(title, ext),
+            "used_hevc": used_hevc,
+            "width": info.get("width"),
+            "height": info.get("height"),
+        }
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/api/resolve", methods=["POST"])
+def resolve():
+    data = request.get_json(silent=True) or {}
+    raw_url = (data.get("url") or "").strip()
+
+    match = TIKTOK_URL_RE.search(raw_url)
+    if not match:
+        return jsonify({"error": "Это не похоже на ссылку TikTok"}), 400
+
+    clean_url = match.group(0)
 
     try:
-        # Эмулируем запрос к движку SnapTik через публичный шлюз без водяных знаков в макс. качестве
-        snaptik_api_url = "https://snaptik-fit.p.rapidapi.com/tiktok" # Или аналогичный шлюз
-        
-        # Альтернативный прямой эмулятор запроса к оригинальному SnapTik парсеру:
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Origin": "https://snaptik.net",
-            "Referer": "https://snaptik.net/"
-        }
-        
-        # Запрос к бэкенду парсера, имитирующего логику SnapTik
-        response = requests.post(
-            "https://tikwm.com/api/", # Используем продвинутый прокси с полными параметрами
-            data={"url": video_url, "count": 12, "cursor": 0, "web": 1, "hd": 1},
-            headers={'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15'}
-        )
-        
-        res_json = response.json()
-        if res_json.get("code") == 0:
-            data = res_json.get("data", {})
-            # Вытягиваем именно оригинальный поток (origin_cover или hdplay с максимальным битрейтом)
-            download_url = data.get("hdplay") or data.get("play")
-            
-            if download_url:
-                # Скачиваем файл потоком и передаем пользователю
-                video_res = requests.get(download_url, stream=True, headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Referer': 'https://www.tiktok.com/'
-                })
-                
-                return Response(
-                    video_res.iter_content(chunk_size=1024*1024),
-                    content_type='video/mp4',
-                    headers={
-                        'Content-Disposition': 'attachment; filename="SnapTik_Original.mp4"'
-                    }
-                )
+        result = extract_best_hevc(clean_url)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": f"Не получилось обработать видео: {exc}"}), 500
 
-        return "Не удалось вытянуть поток в оригинальном качестве", 500
+    return jsonify(result)
 
-    except Exception as e:
-        print(f"Error: {e}")
-        return "Внутренняя ошибка сервера", 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port)
+@app.route("/api/download")
+def download():
+    """Проксирует файл через наш сервер, чтобы браузер сохранял его с
+    правильным именем и без проблем с CORS/Referer до CDN TikTok."""
+    file_url = request.args.get("url")
+    filename = request.args.get("filename", "tiktok_video.mp4")
+
+    if not file_url:
+        return jsonify({"error": "Нет ссылки на файл"}), 400
+
+    import requests
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ),
+        "Referer": "https://www.tiktok.com/",
+    }
+
+    try:
+        upstream = requests.get(file_url, headers=headers, stream=True, timeout=30)
+        upstream.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": f"Не удалось скачать файл: {exc}"}), 502
+
+    def generate():
+        for chunk in upstream.iter_content(chunk_size=64 * 1024):
+            if chunk:
+                yield chunk
+
+    return Response(
+        stream_with_context(generate()),
+        content_type=upstream.headers.get("Content-Type", "video/mp4"),
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
